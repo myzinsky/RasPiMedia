@@ -7,6 +7,7 @@ from array import *
 from PIL import Image, ImageTk
 from pygame import mixer
 import subprocess
+import tkFont
 
 GPIO.setmode(GPIO.BCM)
 
@@ -14,6 +15,7 @@ GPIO.setmode(GPIO.BCM)
 STICK  = "/media/pi/INTENSO/"
 BILDER = STICK+"bilder/"
 MUSIK  = STICK+"musik/"
+TEXTE  = STICK+"texte/"
 VIDEOS = STICK+"videos/"
 
 # LEDs konfigurieren:
@@ -27,8 +29,9 @@ GPIO.output(LED2, False);
 # Die 10 Taster Konfigurieren
 T = [4,17,18,27,22,23,24,25,5,6]
 for i in range(0,10):
+    print("{}->{}".format(i,T[i]))
     GPIO.setup(T[i], GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-    GPIO.add_event_detect(T[i], GPIO.BOTH, callback=lambda _, x=i: OnButtonPress(x+1), bouncetime=300)
+    GPIO.add_event_detect(T[i], GPIO.RISING, callback=lambda _, x=i: OnButtonPress(x+1), bouncetime=300)
 
 # Pause, Stop, Auswahl1, Auswahl2 :
 T1 = 12 # Auswahl 1
@@ -90,17 +93,27 @@ def OnStoppPress():
     os.system("killall omxplayer.bin")
 
 def OnButtonPress(button): 
+    print("Button Pressed")
     global state1
     global omxc
+    global T
+    global currentFile
+
     if state1 == False and state2 == False:	
         global panel
         global img
         f = BILDER+str(button)+".jpg"
 
+        if currentFile == f:
+            return
+        currentFile = f
+
+        panel['bg'] = "black"
         if os.path.exists(f):
             img = loadAndResizeImage(f)
         else:
             img = loadAndResizeImage(BILDER+"0.jpg")
+
         panel['image'] = img
         os.system("killall omxplayer.bin")
     elif state1 == True and state2 == False:
@@ -112,15 +125,35 @@ def OnButtonPress(button):
            mixer.music.load(f)
            mixer.music.play() 
     elif state1 == False and state2 == True:
-        # TODO
-        print(" ")
+        global img
+        f = TEXTE+str(button)+".txt"
+
+        if os.path.exists(f):
+            if currentFile == f:
+                return
+            currentFile = f
+            datei=open(f,"r")
+            panel['image'] = ""
+            panel['bg'] = "white"
+            panel['text'] = datei.read()
+        else:
+            f = BILDER+"0.jpg"
+            if currentFile == f:
+                return
+            currentFile = f
+            panel['text'] = ""
+            panel['bg'] = "black"
+            img = loadAndResizeImage(f)
+            panel['image'] = img
+
+        os.system("killall omxplayer.bin")
     elif state1 == True and state2 == True:
         f = VIDEOS+str(button)+".mp4"
         print(f)
         if os.path.exists(f):
             os.system("killall omxplayer.bin")
             mixer.music.stop() 
-            omxc = subprocess.Popen(['omxplayer', '-b', f], stdin=subprocess.PIPE)
+            omxc = subprocess.Popen(['omxplayer', '-o', 'local', '-b', f], stdin=subprocess.PIPE)
 
 def key(e):
     if e.char == "q":
@@ -146,8 +179,11 @@ window.attributes("-fullscreen", True)
 window.bind("<KeyPress>", key)
 
 img = loadAndResizeImage(BILDER+"0.jpg")
+currentFile = ""
 
-panel = tk.Label(window, image=img, bg="black")
+width  = window.winfo_screenwidth()
+fontStyle = tkFont.Font(family="DejaVu Sans", size=16)
+panel = tk.Label(window, text="", image=img, bg="black", font=fontStyle, wraplength=width)
 panel.pack(side="bottom", fill="both", expand="yes")
 
 window.mainloop()
