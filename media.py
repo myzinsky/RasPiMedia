@@ -8,6 +8,7 @@ from PIL import Image, ImageTk
 from pygame import mixer
 import subprocess
 import tkFont
+import mutagen.mp3
 
 GPIO.setmode(GPIO.BCM)
 
@@ -122,6 +123,8 @@ def OnButtonPress(button):
 
         if os.path.exists(f):
            os.system("killall omxplayer.bin")
+           mp3 = mutagen.mp3.MP3(f)
+           mixer.init(frequency=mp3.info.sample_rate)
            mixer.music.load(f)
            mixer.music.play() 
     elif state1 == False and state2 == True:
@@ -166,8 +169,6 @@ while start == False:
     if os.path.exists(STICK) == True:
         start = True
 
-# MP3 PLayer Initialisieren:
-mixer.init()
 
 # LEDs ausschalten:
 GPIO.output(LED1, False);
