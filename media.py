@@ -124,6 +124,8 @@ def OnButtonPress(button):
         if os.path.exists(f):
            os.system("killall omxplayer.bin")
            mp3 = mutagen.mp3.MP3(f)
+           if(mixer.get_init()):
+               mixer.quit()
            mixer.init(frequency=mp3.info.sample_rate)
            mixer.music.load(f)
            mixer.music.play() 
